@@ -1,0 +1,6 @@
+__pycache__
+*.pyc
+*.log
+.venv
+bedrock-server
+Dedicated_Server.txt
