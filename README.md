@@ -16,6 +16,12 @@ If there are no players online, it shuts down the server safely.
 
 > ⚠️ Note: The server binary is **not** included in this repository.
 
+## Run app
+
+Just run
+
+`python entrypoint.py`
+
 ## Notes
 
 - Automatic updates are **not** implemented.  
