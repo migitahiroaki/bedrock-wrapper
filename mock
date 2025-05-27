@@ -1,0 +1,16 @@
+#!/bin/bash
+
+echo "$(date '+[%Y-%m-%d %H:%M:%S:%3N INFO]') Starting Server"
+
+while true; do
+    read -r input
+    if [[ "$input" == "list" ]]; then
+        echo "$(date '+[%Y-%m-%d %H:%M:%S:%3N INFO]') There are $(shuf -i 0-2 -n 1)/10 players online:"
+        continue
+    fi
+    if [[ "$input" == "stop" ]]; then
+        echo "$(date '+[%Y-%m-%d %H:%M:%S:%3N INFO]') Server stop requested."
+        echo "$(date '+[%Y-%m-%d %H:%M:%S:%3N INFO]') Stopping server..."
+        break
+    fi
+done

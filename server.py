@@ -8,6 +8,10 @@ from constants import (
     C_LIST,
     M_ALREADY_STOPPED,
     M_ALREADY_STOPPED_WITH,
+    M_COMMAND_TIMED_OUT,
+    M_SENT,
+    M_SERVER_STARTED,
+    M_SERVER_STOPPED,
     M_TIMED_OUT_AFTER,
     T_POLL_LOG_INTERVAL,
     SERVER_DIRECTORY,
@@ -22,13 +26,13 @@ class BedrockServer:
         self,
         logger: Logger,
         server_directory_path: str = SERVER_DIRECTORY,
-        log_path: str = SERVER_LOG_PATH,
+        server_log_path: str = SERVER_LOG_PATH,
     ):
         self.logger: Logger = logger
         atexit.register(self.clean_up)
-        self.log_path: str = log_path
+        self.server_log_path: str = server_log_path
         # Don't forget close()
-        self.log_file = open(log_path, "w", buffering=1)
+        self.log_file = open(server_log_path, "w", buffering=1)
         # Don't forget terminate()
         self.server_process: subprocess.Popen = subprocess.Popen(
             [SERVER_BINARY],
@@ -37,6 +41,7 @@ class BedrockServer:
             stdout=self.log_file,
             stderr=self.log_file,
         )
+        self.logger.info(M_SERVER_STARTED)
 
     def stop(self, timeout: float = 10.0, wait_after_command: float = 10.0):
         ret = self._send_command(C_STOP, timeout)
@@ -48,6 +53,7 @@ class BedrockServer:
 
     def _send_command(self, command: str, timeout: float = 3.0) -> str:
         command_n: str = f"{command}\n"
+        self.logger.info(command)
         if not self.server_process:
             return M_ALREADY_STOPPED
         if isinstance(code := self.server_process.poll(), int):
@@ -56,7 +62,7 @@ class BedrockServer:
         # Write command as log
         self.log_file.write(command_n)
         # Read offset
-        offset: int = os.path.getsize(self.log_path)
+        offset: int = os.path.getsize(self.server_log_path)
         # Absolute time of timeout
         deadline: float = time.time() + timeout
 
@@ -64,10 +70,10 @@ class BedrockServer:
         self.server_process.stdin.flush()
 
         if timeout <= 0.0:
-            return "command sent"
+            return M_SENT
 
         interval: float = T_POLL_LOG_INTERVAL
-        with open(self.log_path, "r") as f:
+        with open(self.server_log_path, "r") as f:
             while time.time() < deadline:
                 time.sleep(interval)
                 f.seek(offset)
@@ -77,6 +83,7 @@ class BedrockServer:
                 # backoff
                 interval *= 2
 
+        self.logger.warning(M_COMMAND_TIMED_OUT)
         raise TimeoutError(M_TIMED_OUT_AFTER.format(timeout=timeout))
 
     def clean_up(self):
@@ -84,4 +91,5 @@ class BedrockServer:
             self.stop()
             self.server_process.terminate()
             self.server_process.wait(60)
+            self.logger.info(M_SERVER_STOPPED)
         self.log_file.close()
